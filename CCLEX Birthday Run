@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCLEX Run Training Plan SPA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Report Info: Overall training plan structure. Goal: Provide an easy-to-navigate overview. Viz/Presentation: Top navigation for main sections, tabbed navigation for training phases. Interaction: Clicking nav items shows relevant content. Justification: Logical flow, user control. Library/Method: HTML/Tailwind/JS.
+        - Report Info: Weekly training schedules (tables in Markdown). Goal: Present schedules clearly. Viz/Presentation: HTML tables styled with Tailwind. Interaction: View different phases via tabs. Justification: Familiar and readable format. Library/Method: HTML/Tailwind.
+        - Report Info: Long run progression (implicit in weekly schedules). Goal: Visualize endurance build-up. Viz/Presentation: Line chart (Chart.js). X-axis: Week, Y-axis: Long Run Distance (km). Interaction: Static chart, dynamically rendered. Justification: Provides a quick visual understanding of progress. Library/Method: Chart.js/Canvas.
+        - Report Info: Textual content (principles, nutrition, routes, blood sugar management). Goal: Make detailed information digestible. Viz/Presentation: Structured HTML sections with clear headings and paragraphs. Accordions/collapsible sections for dense info. Interaction: Expand/collapse details. Justification: Reduces clutter, allows user-driven exploration. Library/Method: HTML/Tailwind/JS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer;
+        }
+        .nav-link-active {
+            @apply bg-gray-900 text-white;
+        }
+        .tab-link {
+            @apply px-4 py-2 font-medium text-sm rounded-t-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer border-b-2 border-transparent;
+        }
+        .tab-link-active {
+            @apply border-orange-500 text-orange-600 dark:text-orange-400 dark:border-orange-400 bg-gray-100 dark:bg-gray-800;
+        }
+        .content-section {
+            @apply hidden p-4 md:p-6;
+        }
+        .content-section-active {
+            @apply block;
+        }
+        .accordion-button {
+            @apply w-full text-left px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-semibold text-gray-800 dark:text-gray-200 flex justify-between items-center transition-colors duration-150;
+        }
+        .accordion-content {
+            @apply hidden px-4 py-3 mt-1 border border-gray-200 dark:border-gray-600 rounded-b-lg bg-white dark:bg-gray-800;
+        }
+        .chart-container-wrapper { /* Renamed for clarity */
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Example max-width, adjust as needed */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height for mobile */
+            max-height: 400px; /* Max height overall */
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .chart-container-wrapper {
+                height: 350px;
+            }
+        }
+        @media (min-width: 1024px) { /* lg breakpoint */
+            .chart-container-wrapper {
+                height: 400px;
+            }
+        }
+        /* Ensure table headers are sticky for better readability on scroll */
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+            z-index: 10; /* Ensure header is above table content */
+            @apply bg-gray-200 dark:bg-gray-700; /* Match header background */
+        }
+        .table-container {
+            max-height: 400px; /* Or any other suitable height */
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+    <nav class="bg-teal-700 dark:bg-teal-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-white">CCLEX Run Training Plan</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a class="nav-link nav-link-active" data-target="overview">Overview</a>
+                        <a class="nav-link" data-target="phases">Training Phases</a>
+                        <a class="nav-link" data-target="nutrition">Nutrition</a>
+                        <a class="nav-link" data-target="routes_gear">Routes & Gear</a>
+                        <a class="nav-link" data-target="blood_sugar">Blood Sugar Mgmt</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a class="nav-link nav-link-active block" data-target="overview">Overview</a>
+                <a class="nav-link block" data-target="phases">Training Phases</a>
+                <a class="nav-link block" data-target="nutrition">Nutrition</a>
+                <a class="nav-link block" data-target="routes_gear">Routes & Gear</a>
+                <a class="nav-link block" data-target="blood_sugar">Blood Sugar Mgmt</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <section id="overview" class="content-section content-section-active bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-teal-600 dark:text-teal-400 mb-4">Welcome to Your CCLEX Run Training Plan!</h2>
+                <p class="mb-4 text-gray-700 dark:text-gray-300">This interactive plan is designed to guide you, a beginner runner managing Type 2 Diabetes, towards successfully completing a run on the CCLEX route by November 30th. It emphasizes gradual progression, consistent effort, and careful management of your health. Remember, this is a journey, and every step forward is an achievement.</p>
+                
+                <div class="mb-6 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900 dark:border-red-700 rounded-md">
+                    <h3 class="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">IMPORTANT MEDICAL DISCLAIMER</h3>
+                    <p class="text-red-600 dark:text-red-200">This training plan and dietary information are for general guidance only. As a person with Type 2 Diabetes, it is <strong>CRUCIAL</strong> to consult your doctor, endocrinologist, and a registered dietitian before starting this or any exercise program or making dietary changes. They are the only ones qualified to provide personalized advice based on your specific health condition, medications, and needs. This plan does not replace professional medical advice.</p>
+                </div>
+
+                <h3 class="text-xl font-semibold text-teal-600 dark:text-teal-400 mb-3">Understanding the Goal</h3>
+                <ul class="list-disc list-inside space-y-1 mb-4 text-gray-700 dark:text-gray-300">
+                    <li><strong>Target Date:</strong> November 30th (approx. 26 weeks).</li>
+                    <li><strong>Route:</strong> CCLEX (Cebu-Cordova Link Expressway).</li>
+                    <li><strong>Distance:</strong> One Way: Approx. 8.5 km to 11.5 km. Round Trip: Approx. 17 km to 23 km.</li>
+                    <li><strong>Initial Goal:</strong> Comfortably complete a one-way run of the CCLEX.</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold text-teal-600 dark:text-teal-400 mb-3">Key Principles for Training with Type 2 Diabetes</h3>
+                <p class="mb-4 text-gray-700 dark:text-gray-300">Adhering to these principles is vital for safe and effective training. This section outlines the core tenets of your preparation, focusing on health management alongside physical conditioning.</p>
+                <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
+                    <li><strong>Medical Clearance & Ongoing Monitoring:</strong> Regular check-ups.</li>
+                    <li><strong>Blood Sugar Management:</strong> Monitor before, during (if safe), and after exercise. Carry fast-acting carbs. Discuss medication adjustments with your doctor.</li>
+                    <li><strong>Consistency over Intensity:</strong> Regular, moderate exercise.</li>
+                    <li><strong>Gradual Progression:</strong> Increase distance/intensity slowly.</li>
+                    <li><strong>Hydration:</strong> Crucial for blood sugar management.</li>
+                    <li><strong>Proper Nutrition:</strong> Key for performance, recovery, and blood sugar control.</li>
+                    <li><strong>Listen to Your Body:</strong> Rest when needed. Don't push through pain or adverse symptoms.</li>
+                    <li><strong>Foot Care:</strong> Wear well-fitting shoes; check feet daily.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="phases" class="content-section bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-teal-600 dark:text-teal-400 mb-4">Training Phases</h2>
+                <p class="mb-6 text-gray-700 dark:text-gray-300">Your training is divided into three distinct phases, each building upon the last to prepare you for the CCLEX run. This section provides the weekly schedules and highlights the focus of each phase. You can switch between phases using the tabs below. A chart also visualizes your planned long run progression over the 26 weeks.</p>
+
+                <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="phaseTabs">
+                        <li class="mr-2"><a class="tab-link tab-link-active" data-phase="phase1">Phase 1 (Wks 1-8)</a></li>
+                        <li class="mr-2"><a class="tab-link" data-phase="phase2">Phase 2 (Wks 9-16)</a></li>
+                        <li><a class="tab-link" data-phase="phase3">Phase 3 (Wks 17-26)</a></li>
+                    </ul>
+                </div>
+
+                <div id="phase1Content" class="phase-content-active">
+                    <h3 class="text-xl font-semibold text-orange-600 dark:text-orange-400 mb-3">Phase 1: Building a Foundation (Weeks 1-8) - June to July</h3>
+                    <p class="mb-3 text-gray-700 dark:text-gray-300"><strong>Focus:</strong> Consistency, establishing a routine, run/walk method, building to 30-45 minutes of continuous activity.</p>
+                    <div class="table-container overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Day</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Activity</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Monday</td><td class="px-6 py-4">Rest or Active Recovery (e.g., 20-30 min walk)</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Tuesday</td><td class="px-6 py-4">Run/Walk: 20-30 mins</td><td class="px-6 py-4">Start 1 min run / 2-3 mins walk. Gradually increase run, decrease walk.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Wednesday</td><td class="px-6 py-4">Rest or Cross-Train (e.g., 30 min swimming, cycling)</td><td class="px-6 py-4">Low impact.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Thursday</td><td class="px-6 py-4">Run/Walk: 20-30 mins</td><td class="px-6 py-4">Similar to Tuesday.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Friday</td><td class="px-6 py-4">Rest</td><td class="px-6 py-4">Crucial for recovery.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Saturday</td><td class="px-6 py-4">Longer Run/Walk: 30-45 mins</td><td class="px-6 py-4">Build distance slowly (add 0.5 km or 5 mins each week).</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Sunday</td><td class="px-6 py-4">Rest or Active Recovery (e.g., 20-30 min walk)</td><td class="px-6 py-4"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-3 text-sm text-gray-600 dark:text-gray-400"><strong>End of Phase 1 Goal:</strong> Comfortably run/walk for 45 mins, running portions longer than walking. Approx. 3-5 km on longer session.</p>
+                </div>
+
+                <div id="phase2Content" class="hidden phase-content">
+                    <h3 class="text-xl font-semibold text-orange-600 dark:text-orange-400 mb-3">Phase 2: Increasing Endurance (Weeks 9-16) - August to September</h3>
+                    <p class="mb-3 text-gray-700 dark:text-gray-300"><strong>Focus:</strong> Gradually increasing running duration, reducing walk breaks, introducing one slightly longer run per week.</p>
+                    <div class="table-container overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Day</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Activity</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Monday</td><td class="px-6 py-4">Rest or Active Recovery</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Tuesday</td><td class="px-6 py-4">Run: 30-40 mins</td><td class="px-6 py-4">Aim for more continuous running, walk breaks if needed.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Wednesday</td><td class="px-6 py-4">Rest or Cross-Train (30-45 mins)</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Thursday</td><td class="px-6 py-4">Run: 30-45 mins</td><td class="px-6 py-4">Could include gentle hills or faster segments (Consult Dr.).</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Friday</td><td class="px-6 py-4">Rest</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Saturday</td><td class="px-6 py-4">Long Run: 45-75 mins</td><td class="px-6 py-4">Gradually increase by 5-10 mins each week. Key endurance day.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Sunday</td><td class="px-6 py-4">Rest or Active Recovery</td><td class="px-6 py-4"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <p class="mt-3 text-sm text-gray-600 dark:text-gray-400"><strong>End of Phase 2 Goal:</strong> Comfortably run 45-60 mins continuously. Long run of approx. 8-10 km.</p>
+                </div>
+
+                <div id="phase3Content" class="hidden phase-content">
+                    <h3 class="text-xl font-semibold text-orange-600 dark:text-orange-400 mb-3">Phase 3: Specific Preparation & Peaking (Weeks 17-26) - October to November</h3>
+                    <p class="mb-3 text-gray-700 dark:text-gray-300"><strong>Focus:</strong> Building up to CCLEX one-way distance, practicing race day nutrition/hydration, tapering.</p>
+                    <div class="table-container overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Day</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Activity</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Notes</th>
+                                </tr>
+                            </thead>
+                           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Monday</td><td class="px-6 py-4">Rest or Active Recovery</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Tuesday</td><td class="px-6 py-4">Run: 40-50 mins</td><td class="px-6 py-4">Maintain fitness.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Wednesday</td><td class="px-6 py-4">Rest or Cross-Train (30-40 mins)</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Thursday</td><td class="px-6 py-4">Run: 40-50 mins</td><td class="px-6 py-4">Could include segments at planned CCLEX pace.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Friday</td><td class="px-6 py-4">Rest</td><td class="px-6 py-4"></td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Saturday</td><td class="px-6 py-4">Long Run: Gradually increase to 10-12+ km</td><td class="px-6 py-4">Details in "Long Run Progression" below. Simulate CCLEX conditions.</td></tr>
+                                <tr><td class="px-6 py-4 whitespace-nowrap">Sunday</td><td class="px-6 py-4">Rest or Active Recovery</td><td class="px-6 py-4"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mt-4 mb-2">Phase 3 - Specific Long Run Progression (Saturdays):</h4>
+                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <li><strong>Week 17:</strong> 10 km</li>
+                        <li><strong>Week 18:</strong> 8 km (step-back week)</li>
+                        <li><strong>Week 19:</strong> 11 km</li>
+                        <li><strong>Week 20:</strong> 9 km (step-back)</li>
+                        <li><strong>Week 21:</strong> 12 km (Target CCLEX one-way distance)</li>
+                        <li><strong>Week 22:</strong> 10 km</li>
+                        <li><strong>Week 23:</strong> Practice Run (Optional): 10-12km easy, mimic CCLEX.</li>
+                        <li><strong>Week 24:</strong> 8 km (Tapering begins)</li>
+                        <li><strong>Week 25 (Week before target):</strong> 5-6 km easy run.</li>
+                        <li><strong>Week 26 (Target Week - Nov 30th):</strong> CCLEX Run! (Pre-run: Mon-Wed light/rest, Thu 20min easy, Fri rest)</li>
+                    </ul>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-teal-600 dark:text-teal-400 mb-3">Long Run Progression Chart (km)</h3>
+                    <p class="mb-4 text-gray-700 dark:text-gray-300">This chart illustrates the planned increase in your Saturday long run distance over the 26 weeks, helping you visualize your journey to the CCLEX distance.</p>
+                    <div class="chart-container-wrapper bg-white dark:bg-gray-800 p-2 rounded-lg shadow">
+                        <canvas id="longRunChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold text-teal-600 dark:text-teal-400 mb-3">Strength Training & Flexibility</h3>
+                     <p class="mb-4 text-gray-700 dark:text-gray-300">Incorporating strength and flexibility work is crucial for injury prevention and improving running efficiency. These activities support your running progress.</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                        <li><strong>Strength Training:</strong> 2 times/week (e.g., Wed, Sun on lighter days). Focus on core, glutes, legs (squats, lunges, planks). Consult doctor/physio.</li>
+                        <li><strong>Flexibility:</strong> Gentle stretching after each run (hold 20-30s). Dynamic warm-ups before runs.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="nutrition" class="content-section bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+             <div class="p-6">
+                <h2 class="text-2xl font-semibold text-teal-600 dark:text-teal-400 mb-4">Nutrition Guidelines</h2>
+                <p class="mb-6 text-gray-700 dark:text-gray-300">Proper nutrition is paramount when training, especially with Type 2 Diabetes. It fuels your runs, aids recovery, and helps manage blood sugar levels. This section offers general principles; <strong>always consult your dietitian for a personalized plan.</strong></p>
+                
+                <div class="space-y-3">
+                    <div>
+                        <button class="accordion-button" data-target="nutritionPrinciplesContent">
+                            <span>General Principles</span>
+                            <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="nutritionPrinciplesContent" class="accordion-content">
+                            <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
+                                <li><strong>Balanced Meals (Plate Method):</strong> 1/2 non-starchy veggies, 1/4 lean protein, 1/4 complex carbs.</li>
+                                <li><strong>Consistent Carb Intake:</strong> Similar carb amounts at meals/snacks.</li>
+                                <li><strong>High-Fiber Carbs:</strong> Whole grains, fruits, veggies, legumes.</li>
+                                <li><strong>Healthy Fats:</strong> Avocado, nuts, seeds, olive oil.</li>
+                                <li><strong>Foods to Limit/Avoid:</strong> Sugary drinks, processed foods, high saturated/trans fats, refined carbs.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button class="accordion-button" data-target="nutritionTimingContent">
+                            <span>Meal & Snack Timing (Around Exercise)</span>
+                             <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="nutritionTimingContent" class="accordion-content">
+                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Pre-Run (1-3 hours before):</h4>
+                            <p class="mb-2 text-gray-700 dark:text-gray-300">Small meal/snack with carbs & protein. E.g., oatmeal with berries, toast with nut butter. Monitor blood sugar; if <100 mg/dL (or Dr.'s level), take 15-20g fast carbs.</p>
+                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">During Run (>60-90 mins):</h4>
+                            <p class="mb-2 text-gray-700 dark:text-gray-300">Easily digestible carbs (15-30g/hour). E.g., glucose gels, fruit pieces. Practice during training.</p>
+                            <h4 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Post-Run (within 30-60 mins):</h4>
+                            <p class="mb-2 text-gray-700 dark:text-gray-300">Snack/meal with carbs & protein. E.g., chocolate milk, Greek yogurt with fruit.</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button class="accordion-button" data-target="nutritionHydrationContent">
+                            <span>Hydration</span>
+                             <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="nutritionHydrationContent" class="accordion-content">
+                             <p class="text-gray-700 dark:text-gray-300">Drink water throughout the day. Drink before, during (>30-60 min runs), and after runs. Consider electrolyte drinks (low/no sugar) for long runs in heat.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button class="accordion-button" data-target="nutritionSampleMealContent">
+                            <span>Sample Daily Meal Structure</span>
+                             <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="nutritionSampleMealContent" class="accordion-content">
+                            <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                                <li><strong>Breakfast:</strong> Oatmeal with berries, chia seeds, walnuts OR scrambled eggs with spinach, whole-wheat toast.</li>
+                                <li><strong>Mid-Morning Snack:</strong> Apple slices with peanut butter OR small handful of almonds.</li>
+                                <li><strong>Lunch:</strong> Large salad with grilled chicken/chickpeas OR lentil soup with whole-grain roll.</li>
+                                <li><strong>Mid-Afternoon Snack:</strong> Greek yogurt OR rice cake with avocado.</li>
+                                <li><strong>Dinner:</strong> Baked salmon with roasted sweet potatoes & steamed broccoli OR tofu stir-fry with brown rice.</li>
+                                <li><strong>Evening Snack (if needed):</strong> Small fruit OR whole-grain crackers with low-fat cheese.</li>
+                            </ul>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Adjust portions based on your needs & dietitian's advice.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="routes_gear" class="content-section bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-teal-600 dark:text-teal-400 mb-4">Preparation Routes & Gear</h2>
+                <p class="mb-6 text-gray-700 dark:text-gray-300">Choosing appropriate routes for your training runs and having the right gear will make your journey safer and more enjoyable. This section provides suggestions for beginner-friendly routes in Cebu and essential gear.</p>
+
+                <div class="space-y-3">
+                    <div>
+                        <button class="accordion-button" data-target="routesContent">
+                            <span>Preparation Routes in Cebu (Beginner Friendly)</span>
+                            <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="routesContent" class="accordion-content">
+                            <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
+                                <li><strong>Cebu Business Park (CBP):</strong> Flat, wide sidewalks, good for shorter loops.</li>
+                                <li><strong>IT Park:</strong> Paved areas, can be busy.</li>
+                                <li><strong>SRP (Il Corso / Citi de Mare):</strong> Long, flat stretches by the sea, good for longer distances. Access to CCLEX.</li>
+                                <li><strong>Fuente Osmeña Circle:</strong> Short loop, accessible, can be crowded.</li>
+                                <li><strong>School Ovals/Tracks (if accessible):</strong> Flat, measured, soft surface.</li>
+                            </ul>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Gradually explore routes with gentle inclines as you get fitter. For CCLEX simulation, try long runs in similar conditions (early morning, exposed routes if safe).</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button class="accordion-button" data-target="gearContent">
+                            <span>Essential Gear</span>
+                            <span class="accordion-icon transform transition-transform duration-200">&#9660;</span>
+                        </button>
+                        <div id="gearContent" class="accordion-content">
+                            <ul class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
+                                <li><strong>Running Shoes:</strong> Well-fitting, suited for your foot type.</li>
+                                <li><strong>Comfortable Clothing:</strong> Light, breathable, moisture-wicking.</li>
+                                <li><strong>Sun Protection:</strong> Hat/visor, sunglasses, sunscreen.</li>
+                                <li><strong>Hydration Carrier:</strong> For longer runs (bottle, belt, vest).</li>
+                                <li><strong>Blood Glucose Monitor & Supplies:</strong> Always.</li>
+                                <li><strong>Fast-Acting Carbs:</strong> Always.</li>
+                                <li><strong>Phone:</strong> For safety.</li>
+                                <li><strong>Medical ID.</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="blood_sugar" class="content-section bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="p-6">
+                <h2 class="text-2xl font-semibold text-teal-600 dark:text-teal-400 mb-4">Blood Sugar Management for Runners</h2>
+                <p class="mb-6 text-gray-700 dark:text-gray-300">Careful blood sugar management is non-negotiable. This section details specific considerations for monitoring and managing your glucose levels in relation to your running activities. Work closely with your healthcare provider on this.</p>
+                <ul class="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
+                    <li><strong>Know Your Numbers:</strong> Test frequently, especially when starting.</li>
+                    <li><strong>Hypoglycemia Awareness:</strong> Recognize symptoms (shakiness, sweating, dizziness, confusion). Always carry fast-acting carbs.</li>
+                    <li><strong>Hyperglycemia Awareness:</strong> Recognize symptoms (thirst, frequent urination, fatigue). If very high pre-exercise, consult doctor.</li>
+                    <li><strong>Impact of Intensity & Duration:</strong> Longer/more intense exercise generally lowers blood sugar more.</li>
+                    <li><strong>Delayed Hypoglycemia:</strong> Blood sugar can drop hours after exercise. Monitor post-run.</li>
+                    <li><strong>Keep Records:</strong> Note food, exercise, blood sugar levels to identify patterns.</li>
+                    <li><strong>Emergency ID:</strong> Wear a medical ID.</li>
+                </ul>
+            </div>
+        </section>
+        
+        <footer class="text-center mt-8 mb-4 text-sm text-gray-500 dark:text-gray-400">
+            <p>Remember to consult your healthcare team before starting or modifying this plan. Good luck with your training!</p>
+            <p>&copy; 2025 CCLEX Training Plan SPA. For informational purposes only.</p>
+        </footer>
+    </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        // Navigation for main sections
+        navLinks.forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.dataset.target;
+
+                navLinks.forEach(nav => {
+                    nav.classList.remove('nav-link-active');
+                    if (nav.classList.contains('block')) { // for mobile links
+                         nav.classList.remove('bg-gray-900', 'text-white');
+                    }
+                });
+
+                // Activate current link (handle desktop and mobile separately for active styles)
+                document.querySelectorAll(`.nav-link[data-target="${targetId}"]`).forEach(activeLink => {
+                    activeLink.classList.add('nav-link-active');
+                     if (activeLink.classList.contains('block')) { // for mobile links
+                        activeLink.classList.add('bg-gray-900', 'text-white');
+                    }
+                });
+                
+                contentSections.forEach(section => {
+                    section.classList.remove('content-section-active');
+                    section.classList.add('hidden');
+                });
+                document.getElementById(targetId).classList.add('content-section-active');
+                document.getElementById(targetId).classList.remove('hidden');
+
+                // Close mobile menu after click
+                if (mobileMenu.classList.contains('block')) {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.classList.remove('block');
+                    mobileMenuButton.querySelectorAll('svg').forEach(svg => svg.classList.toggle('hidden'));
+                }
+                window.scrollTo(0,0); // Scroll to top
+            });
+        });
+
+        // Mobile menu toggle
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('block');
+            this.querySelectorAll('svg').forEach(svg => svg.classList.toggle('hidden'));
+        });
+
+        // Training Phase Tabs
+        const phaseTabs = document.querySelectorAll('#phaseTabs .tab-link');
+        const phaseContents = document.querySelectorAll('.phase-content');
+
+        phaseTabs.forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetPhase = this.dataset.phase + 'Content';
+
+                phaseTabs.forEach(t => t.classList.remove('tab-link-active'));
+                this.classList.add('tab-link-active');
+
+                phaseContents.forEach(content => {
+                    content.classList.add('hidden');
+                    content.classList.remove('phase-content-active');
+                });
+                document.getElementById(targetPhase).classList.remove('hidden');
+                document.getElementById(targetPhase).classList.add('phase-content-active');
+            });
+        });
+        
+        // Accordion functionality
+        const accordionButtons = document.querySelectorAll('.accordion-button');
+        accordionButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const contentId = this.dataset.target;
+                const content = document.getElementById(contentId);
+                const icon = this.querySelector('.accordion-icon');
+
+                content.classList.toggle('hidden');
+                if (content.classList.contains('hidden')) {
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            });
+        });
+
+
+        // Chart.js: Long Run Progression
+        const longRunDataKm = [
+            // Phase 1 (Weeks 1-8) - Approx km based on 30-45 min run/walk
+            2.5, 2.8, 3.0, 3.3, 3.5, 3.8, 4.0, 4.5, // W1-8 (example progression)
+            // Phase 2 (Weeks 9-16) - Approx km based on 45-75 min run
+            5.0, 5.5, 6.0, 6.5, 7.0, 7.3, 7.6, 8.0, // W9-16 (example progression)
+            // Phase 3 (Weeks 17-26) - Specific km
+            10, 8, 11, 9, 12, 10, 11, 8, 6 // W17-25 (W26 is race day, not plotted as training)
+        ];
+        const chartLabels = Array.from({length: 25}, (_, i) => `W${i + 1}`);
+
+        const ctx = document.getElementById('longRunChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Long Run Distance (km)',
+                    data: longRunDataKm,
+                    borderColor: 'rgb(234, 88, 12)', // Tailwind orange-600
+                    backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                    tension: 0.1,
+                    fill: true,
+                    pointBackgroundColor: 'rgb(234, 88, 12)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(234, 88, 12)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Distance (km)',
+                            color: document.body.classList.contains('dark') ? '#cbd5e1' : '#4b5563', // gray-300 dark / gray-600 light
+                            font: { size: 14 }
+                        },
+                        ticks: {
+                            color: document.body.classList.contains('dark') ? '#cbd5e1' : '#4b5563',
+                        },
+                        grid: {
+                            color: document.body.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                        }
+                    },
+                    x: {
+                         title: {
+                            display: true,
+                            text: 'Training Week',
+                            color: document.body.classList.contains('dark') ? '#cbd5e1' : '#4b5563',
+                            font: { size: 14 }
+                        },
+                        ticks: {
+                            color: document.body.classList.contains('dark') ? '#cbd5e1' : '#4b5563',
+                             maxRotation: 0, // Prevent label rotation
+                             minRotation: 0,
+                             autoSkip: true,
+                             maxTicksLimit: 15 // Show fewer labels on small screens
+                        },
+                         grid: {
+                            display: false // Hide vertical grid lines for cleaner look
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                             color: document.body.classList.contains('dark') ? '#cbd5e1' : '#4b5563',
+                             font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: document.body.classList.contains('dark') ? 'rgba(31, 41, 55, 0.9)' : 'rgba(255, 255, 255, 0.9)', // gray-800 dark / white light
+                        titleColor: document.body.classList.contains('dark') ? '#f3f4f6' : '#1f2937', // gray-100 dark / gray-800 light
+                        bodyColor: document.body.classList.contains('dark') ? '#d1d5db' : '#374151', // gray-300 dark / gray-700 light
+                        borderColor: document.body.classList.contains('dark') ? '#4b5563' : '#e5e7eb', // gray-600 dark / gray-200 light
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + ' km';
+                                }
+                                return label;
+                            },
+                            // Wrap long tooltip titles (not usually an issue here)
+                            title: function(tooltipItems) {
+                                let title = tooltipItems[0].label;
+                                const maxLen = 16; // Max characters per line
+                                if (title.length > maxLen) {
+                                    let wrappedTitle = [];
+                                    let currentLine = "";
+                                    title.split(" ").forEach(word => {
+                                        if ((currentLine + word).length > maxLen) {
+                                            wrappedTitle.push(currentLine.trim());
+                                            currentLine = "";
+                                        }
+                                        currentLine += word + " ";
+                                    });
+                                    wrappedTitle.push(currentLine.trim());
+                                    return wrappedTitle;
+                                }
+                                return title;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        // Set initial active tab for phases
+        document.querySelector('#phaseTabs .tab-link[data-phase="phase1"]').click();
+
+
+        // Ensure the first navigation link is correctly styled as active on load
+        const firstNavLinkDesktop = document.querySelector('.md\\:block .nav-link[data-target="overview"]');
+        const firstNavLinkMobile = document.querySelector('#mobile-menu .nav-link[data-target="overview"]');
+        if (firstNavLinkDesktop) firstNavLinkDesktop.classList.add('nav-link-active');
+        if (firstNavLinkMobile) {
+            firstNavLinkMobile.classList.add('nav-link-active');
+            firstNavLinkMobile.classList.add('bg-gray-900', 'text-white');
+        }
+
+
+    });
+</script>
+</body>
+</html>
+
